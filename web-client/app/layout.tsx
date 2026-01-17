@@ -5,8 +5,8 @@ import { Inter } from 'next/font/google'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'GoLiveNG - Stream to Social Medias',
-  description: 'Professional Restreaming Engine',
+  title: 'GoLiveNG',
+  description: 'Stream to All Social Media',
 }
 
 export default function RootLayout({
