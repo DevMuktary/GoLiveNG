@@ -1,7 +1,11 @@
 Flask==3.0.0
 Flask-Cors==4.0.0
+Flask-SQLAlchemy==3.1.1
+Flask-Bcrypt==1.0.1
+Flask-JWT-Extended==4.5.3
 gunicorn==21.2.0
 requests==2.31.0
 yt-dlp==2023.11.16
 ffmpeg-python==0.2.0
 python-dotenv==1.0.0
+psycopg2-binary==2.9.9
