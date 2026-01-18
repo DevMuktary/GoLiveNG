@@ -1,5 +1,5 @@
 {
-  "name": "ng-streamer-web",
+  "name": "quadrox-streamer-web",
   "version": "1.0.1",
   "private": true,
   "engines": {
@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "npx prisma db push --accept-data-loss && next build",
+    "build": "npx prisma db push && next build",
     "start": "next start -H 0.0.0.0",
     "lint": "next lint",
     "postinstall": "prisma generate"
