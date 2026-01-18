@@ -1,221 +1,272 @@
 import Link from 'next/link';
 import { 
-  Video, Globe, Zap, Shield, ChevronRight, Activity, 
-  Users, Check, Play, Smartphone, Cast, Server 
+  Video, Globe, Zap, Shield, ChevronRight, Check, 
+  Smartphone, Cast, Layout, HelpCircle, Facebook, Youtube, Twitch
 } from 'lucide-react';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-white font-sans selection:bg-indigo-500 selection:text-white overflow-hidden">
+    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-900">
       
-      {/* --- Ambient Background --- */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] opacity-40"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px] opacity-30"></div>
-      </div>
-
-      {/* --- Navbar --- */}
-      <nav className="fixed w-full z-50 top-0 left-0 border-b border-white/5 bg-[#0B0F19]/80 backdrop-blur-xl">
+      {/* Navigation */}
+      <nav className="fixed w-full z-50 top-0 left-0 bg-white/80 backdrop-blur-md border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+          <div className="flex items-center space-x-2">
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20">
               <Video className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold tracking-tight text-white">
-              GoLiveNG
-            </span>
+            <span className="text-xl font-bold tracking-tight text-slate-900">GoLiveNG</span>
           </div>
-          <div className="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-400">
-            <a href="#features" className="hover:text-white transition-colors">Features</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-            <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
+          <div className="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-600">
+            <a href="#features" className="hover:text-blue-600 transition-colors">Features</a>
+            <a href="#pricing" className="hover:text-blue-600 transition-colors">Pricing</a>
+            <a href="#faq" className="hover:text-blue-600 transition-colors">FAQ</a>
           </div>
           <div className="flex items-center space-x-4">
-            <Link href="/login" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">
+            <Link href="/login" className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-colors">
               Log In
             </Link>
-            <Link href="/signup" className="group relative px-6 py-2.5 rounded-full bg-white text-[#0B0F19] text-sm font-bold hover:bg-blue-50 transition-all overflow-hidden">
-              <span className="relative z-10">Get Started</span>
+            <Link href="/signup" className="px-6 py-2.5 rounded-full bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">
+              Get Started
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* --- Hero Section --- */}
-      <main className="pt-40 pb-20 px-6 relative z-10">
+      {/* Hero Section */}
+      <main className="pt-32 pb-20 px-6 lg:pt-48 lg:pb-32 overflow-hidden">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
           
-          <div className="space-y-8">
-            <div className="inline-flex items-center space-x-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-1.5 backdrop-blur-sm">
-              <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
-              <span className="text-xs font-bold text-blue-400 tracking-wide uppercase">New: 4K Support</span>
+          {/* Left Content */}
+          <div className="space-y-8 relative z-10 text-center lg:text-left">
+            <div className="inline-flex items-center space-x-2 bg-blue-50 border border-blue-100 rounded-full px-4 py-1.5">
+              <span className="flex h-2 w-2 rounded-full bg-blue-600 animate-pulse"></span>
+              <span className="text-xs font-bold text-blue-700 tracking-wide uppercase">Live in Nigeria</span>
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.1]">
-              Go Live on <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
-                All Platforms.
+            <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.1]">
+              One Stream. <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-emerald-500">
+                Every Platform.
               </span>
             </h1>
             
-            <p className="text-lg text-slate-400 max-w-xl leading-relaxed">
-              Stream directly to Facebook, YouTube, Twitch, and 50+ sites simultaneously. 
-              No software needed. Just upload or link, and we handle the rest.
+            <p className="text-lg text-slate-600 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+              Stop struggling with slow internet. Send us one video feed, and our Lagos-based cloud servers will relay it to Facebook, YouTube, and Instagram instantly.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 pt-2">
-              <Link href="/signup" className="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20 group">
-                Go Live Now
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
+              <Link href="/signup" className="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 group">
+                Start Streaming Free
                 <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <a href="#demo" className="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-white bg-[#131926] border border-white/10 rounded-xl hover:bg-[#1A2030] transition-all">
-                <Play className="w-4 h-4 mr-2" />
-                Watch Demo
+              <a href="#how-it-works" className="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all">
+                See How It Works
               </a>
             </div>
 
-            {/* Stats Row */}
-            <div className="grid grid-cols-3 gap-6 border-t border-white/5 pt-8 mt-4">
-              <div>
-                <div className="text-2xl font-bold text-white">600k+</div>
-                <div className="text-xs text-slate-500 uppercase tracking-wider">Users</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-white">5M+</div>
-                <div className="text-xs text-slate-500 uppercase tracking-wider">Streams</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-white">99.9%</div>
-                <div className="text-xs text-slate-500 uppercase tracking-wider">Uptime</div>
-              </div>
+            <div className="pt-8 flex items-center justify-center lg:justify-start space-x-6 grayscale opacity-60">
+               {/* Platform Logos (CSS Placeholders) */}
+               <div className="flex items-center space-x-2"><Facebook className="w-5 h-5" /><span className="font-bold">Facebook</span></div>
+               <div className="flex items-center space-x-2"><Youtube className="w-5 h-5" /><span className="font-bold">YouTube</span></div>
+               <div className="flex items-center space-x-2"><Twitch className="w-5 h-5" /><span className="font-bold">Twitch</span></div>
             </div>
           </div>
 
-          {/* Right: Visual Abstract */}
-          <div className="relative hidden lg:block">
-            <div className="relative z-10 bg-[#131926] border border-white/10 rounded-2xl p-1 shadow-2xl shadow-black/50 aspect-video">
-              <div className="bg-[#0B0F19] w-full h-full rounded-xl overflow-hidden relative flex flex-col">
-                {/* Fake UI Header */}
-                <div className="h-10 border-b border-white/5 flex items-center px-4 space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500/20"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/20"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500/20"></div>
+          {/* Right Visual */}
+          <div className="relative mx-auto lg:mx-0 max-w-[600px] perspective-1000">
+             {/* Main App Window Mockup */}
+             <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 transform rotate-y-12 transition-transform hover:rotate-0 duration-700">
+                <div className="bg-slate-50 rounded-xl overflow-hidden border border-slate-100 aspect-video relative group">
+                  {/* Fake Header */}
+                  <div className="absolute top-0 w-full h-10 bg-white border-b border-slate-100 flex items-center px-4 space-x-2 z-10">
+                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                  </div>
+                  
+                  {/* Fake Content */}
+                  <div className="absolute inset-0 pt-10 flex items-center justify-center bg-gradient-to-br from-slate-100 to-white">
+                     <div className="text-center">
+                        <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                           <Cast className="w-8 h-8" />
+                        </div>
+                        <div className="px-4 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold inline-flex items-center">
+                           <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                           Connection Excellent
+                        </div>
+                     </div>
+                  </div>
                 </div>
-                {/* Visual Content */}
-                <div className="flex-1 flex items-center justify-center relative">
-                   <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5"></div>
-                   <div className="text-center space-y-4">
-                      <div className="w-20 h-20 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto animate-pulse">
-                        <Cast className="w-10 h-10 text-blue-500" />
-                      </div>
-                      <div className="px-4 py-1 bg-green-500/10 border border-green-500/20 rounded-full text-green-400 text-xs font-mono inline-block">
-                        ● Broadcasting to 3 Destinations
-                      </div>
-                   </div>
+             </div>
+
+             {/* Floating Badge */}
+             <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-xl shadow-xl border border-slate-100 flex items-center space-x-3 animate-bounce-slow">
+                <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-emerald-600" />
                 </div>
-              </div>
-            </div>
-            {/* Floating Cards */}
-            <FloatingCard icon={<Globe className="w-4 h-4 text-blue-400" />} title="Facebook Live" status="Connected" top="10%" right="-5%" />
-            <FloatingCard icon={<Video className="w-4 h-4 text-red-400" />} title="YouTube" status="Streaming" bottom="10%" left="-5%" />
+                <div>
+                  <p className="text-xs text-slate-500 font-medium">Latency</p>
+                  <p className="text-sm font-bold text-slate-900">0.5 Seconds</p>
+                </div>
+             </div>
           </div>
         </div>
       </main>
 
-      {/* --- Features Grid (Bento) --- */}
-      <section id="features" className="py-24 px-6 relative z-10">
+      {/* Stats Section */}
+      <section className="bg-slate-50 border-y border-slate-200 py-12">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          <Stat label="Active Streamers" value="12,000+" />
+          <Stat label="Countries Reached" value="35+" />
+          <Stat label="Uptime Guarantee" value="99.9%" />
+          <Stat label="Data Served" value="500 TB" />
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section id="features" className="py-24 px-6 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">Why Stream With Us?</h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">
-              We provide the infrastructure. You provide the content.
-            </p>
+          <div className="text-center mb-16 max-w-3xl mx-auto">
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">Everything you need to go viral</h2>
+            <p className="text-slate-600 text-lg">We handle the technical heavy lifting so you can focus on creating content.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            <FeatureCard 
-              icon={<Server className="w-6 h-6 text-purple-400" />}
-              title="Cloud Transcoding"
-              desc="We process your video on our servers. Even if you go offline, your stream stays live."
-              className="md:col-span-2 bg-gradient-to-br from-[#131926] to-[#0f1219]"
+          <div className="grid md:grid-cols-3 gap-8">
+             <FeatureCard 
+               icon={<Globe className="w-6 h-6 text-blue-600" />}
+               title="Multistreaming"
+               desc="Stream to Facebook, YouTube, Twitch, and custom RTMP destinations simultaneously."
+             />
+             <FeatureCard 
+               icon={<Smartphone className="w-6 h-6 text-purple-600" />}
+               title="Mobile Ready"
+               desc="Our interface works perfectly on mobile browsers. Go live from anywhere in Nigeria."
+             />
+             <FeatureCard 
+               icon={<Layout className="w-6 h-6 text-emerald-600" />}
+               title="No Software Needed"
+               desc="Forget OBS. Just upload a video or use your webcam directly in the browser."
+             />
+             <FeatureCard 
+               icon={<Shield className="w-6 h-6 text-indigo-600" />}
+               title="Secure & Private"
+               desc="We use official APIs. We never store your passwords or stream keys."
+             />
+             <FeatureCard 
+               icon={<Zap className="w-6 h-6 text-yellow-600" />}
+               title="Cloud Transcoding"
+               desc="We convert your video quality in the cloud to ensure smooth playback for viewers."
+             />
+             <FeatureCard 
+               icon={<Cast className="w-6 h-6 text-pink-600" />}
+               title="Pre-recorded Live"
+               desc="Schedule a pre-recorded video to go live automatically while you sleep."
+             />
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-24 px-6 bg-slate-50 border-t border-slate-200">
+        <div className="max-w-7xl mx-auto">
+           <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">Simple Pricing</h2>
+            <p className="text-slate-600 text-lg">Start for free, upgrade as you grow.</p>
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {/* Free Plan */}
+            <PricingCard 
+              name="Starter"
+              price="₦0"
+              desc="For testing the waters."
+              features={[
+                "20 mins per stream",
+                "1 Destination",
+                "Watermarked Video",
+                "Standard Support"
+              ]}
             />
-            <FeatureCard 
-              icon={<Smartphone className="w-6 h-6 text-blue-400" />}
-              title="Mobile Ready"
-              desc="Stream directly from your browser or mobile app without OBS."
+            
+            {/* Pro Plan */}
+            <PricingCard 
+              name="Creator"
+              price="₦3,500"
+              period="/mo"
+              desc="For serious content creators."
+              popular={true}
+              features={[
+                "4 hours per stream",
+                "3 Destinations",
+                "No Watermark",
+                "Pre-recorded Streaming",
+                "Priority Support"
+              ]}
             />
-            <FeatureCard 
-              icon={<Zap className="w-6 h-6 text-yellow-400" />}
-              title="Instant RTMP"
-              desc="Get a custom stream key to push to any platform that accepts RTMP."
-            />
-            <FeatureCard 
-              icon={<Users className="w-6 h-6 text-green-400" />}
-              title="Multi-Streaming"
-              desc="Send one video to Facebook, YouTube, and Twitch at the exact same time."
-              className="md:col-span-2"
+
+            {/* Business Plan */}
+            <PricingCard 
+              name="Business"
+              price="₦15,000"
+              period="/mo"
+              desc="For churches and businesses."
+              features={[
+                "24/7 Streaming",
+                "Unlimited Destinations",
+                "4K Quality Support",
+                "Custom RTMP Server",
+                "Dedicated Account Manager"
+              ]}
             />
           </div>
         </div>
       </section>
 
-      {/* --- Pricing Plans (Grid instead of Carousel) --- */}
-      <section id="pricing" className="py-24 border-t border-white/5 bg-white/[0.02]">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Simple, Transparent Pricing</h2>
-            <p className="text-slate-400">Choose the plan that fits your streaming needs.</p>
+      {/* FAQ Section */}
+      <section id="faq" className="py-24 px-6 bg-white">
+        <div className="max-w-3xl mx-auto">
+           <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-slate-900">Frequently Asked Questions</h2>
           </div>
-
-          <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
-            <PricingCard 
-              title="Free" 
-              price="0" 
-              features={['2 streams/day', '20 mins duration', '1 Destination', 'Watermark enabled', 'Standard Ads']} 
-            />
-            <PricingCard 
-              title="Basic" 
-              price="30" 
-              features={['5 recordings/day', '2 hours duration', 'No GoLive Ads', '1 Destination', '360p Quality']} 
-              highlight 
-            />
-            <PricingCard 
-              title="Gold" 
-              price="299" 
-              features={['15 recordings/day', '8 hours duration', '3 Destinations', '720p HD Quality', 'Custom Logo']} 
-            />
-            <PricingCard 
-              title="Diamond" 
-              price="799" 
-              features={['Unlimited streams', '17 hours duration', '6 Destinations', '1080p Full HD', 'Priority Support']} 
-            />
+          
+          <div className="space-y-4">
+            <FAQItem question="Do I need fast internet?" answer="For our cloud streaming service, you only need enough internet to upload the file once. After that, our servers handle the rest." />
+            <FAQItem question="Can I stream to Facebook Groups?" answer="Yes! You can stream to Profiles, Pages, and Groups." />
+            <FAQItem question="Is there a free trial for paid plans?" answer="We offer a 7-day money-back guarantee on all paid plans." />
           </div>
         </div>
       </section>
 
-      {/* --- FAQ Section --- */}
-      <section id="faq" className="py-24 px-6 max-w-4xl mx-auto">
-        <h2 className="text-3xl font-bold mb-10 text-center">Frequently Asked Questions</h2>
-        <div className="space-y-4">
-          <FaqItem q="Do I need OBS or streaming software?" a="No. GoLiveNG lets you stream directly from your browser or mobile app. OBS is optional." />
-          <FaqItem q="Can I stream pre-recorded videos?" a="Yes! You can upload a video file and we will stream it live for you, even looping it 24/7." />
-          <FaqItem q="Is my Facebook/YouTube account safe?" a="Absolutely. We use official OAuth APIs verified by these platforms. We never see or store your passwords." />
+      {/* Footer */}
+      <footer className="bg-slate-900 text-slate-400 py-12 px-6">
+        <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-8 mb-8">
+          <div className="col-span-1 md:col-span-2">
+            <div className="flex items-center space-x-2 text-white mb-4">
+              <Video className="w-6 h-6" />
+              <span className="text-xl font-bold">GoLiveNG</span>
+            </div>
+            <p className="max-w-xs">The #1 Restreaming platform built for the Nigerian creator economy.</p>
+          </div>
+          <div>
+            <h4 className="text-white font-bold mb-4">Product</h4>
+            <ul className="space-y-2">
+              <li><a href="#" className="hover:text-white">Features</a></li>
+              <li><a href="#" className="hover:text-white">Pricing</a></li>
+              <li><a href="#" className="hover:text-white">Showcase</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-white font-bold mb-4">Company</h4>
+            <ul className="space-y-2">
+              <li><a href="#" className="hover:text-white">About Us</a></li>
+              <li><a href="#" className="hover:text-white">Contact</a></li>
+              <li><a href="#" className="hover:text-white">Privacy Policy</a></li>
+            </ul>
+          </div>
         </div>
-      </section>
-
-      {/* --- Footer --- */}
-      <footer className="border-t border-white/5 bg-[#080B14] py-12 text-center">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-center space-x-2 mb-6">
-             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center"><Video className="w-4 h-4 text-white" /></div>
-             <span className="text-xl font-bold">GoLiveNG</span>
-          </div>
-          <div className="flex justify-center space-x-6 text-sm text-slate-400 mb-8">
-            <a href="#" className="hover:text-white">Privacy</a>
-            <a href="#" className="hover:text-white">Terms</a>
-            <a href="#" className="hover:text-white">Contact</a>
-          </div>
-          <p className="text-slate-600 text-sm">&copy; 2026 Quadrox Tech. All rights reserved.</p>
+        <div className="border-t border-slate-800 pt-8 text-center text-sm">
+          &copy; 2026 Quadrox Tech. All rights reserved.
         </div>
       </footer>
 
@@ -223,72 +274,69 @@ export default function LandingPage() {
   );
 }
 
-// --- Sub-Components ---
+// --- Helper Components ---
 
-function FloatingCard({ icon, title, status, top, right, bottom, left }: any) {
+function Stat({ label, value }: { label: string, value: string }) {
   return (
-    <div 
-      className="absolute z-20 bg-[#1A2030] border border-white/10 p-3 rounded-xl shadow-xl flex items-center space-x-3 animate-bounce-slow"
-      style={{ top, right, bottom, left }}
-    >
-      <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">{icon}</div>
-      <div>
-        <div className="text-xs text-slate-400">{title}</div>
-        <div className="text-[10px] font-bold text-green-400 flex items-center">
-          <span className="w-1.5 h-1.5 bg-green-400 rounded-full mr-1"></span> {status}
-        </div>
-      </div>
+    <div>
+      <div className="text-3xl font-extrabold text-blue-600 mb-1">{value}</div>
+      <div className="text-sm font-medium text-slate-500 uppercase tracking-wide">{label}</div>
     </div>
   );
 }
 
-function FeatureCard({ icon, title, desc, className = "" }: any) {
+function FeatureCard({ icon, title, desc }: { icon: any, title: string, desc: string }) {
   return (
-    <div className={`bg-[#131926] border border-white/5 rounded-3xl p-8 hover:border-white/10 transition-colors group ${className}`}>
-      <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+    <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-200 transition-colors group">
+      <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center mb-4 shadow-sm group-hover:scale-110 transition-transform">
         {icon}
       </div>
-      <h3 className="text-xl font-bold mb-3 text-white">{title}</h3>
-      <p className="text-slate-400 leading-relaxed">{desc}</p>
+      <h3 className="text-xl font-bold text-slate-900 mb-2">{title}</h3>
+      <p className="text-slate-600 leading-relaxed">{desc}</p>
     </div>
   );
 }
 
-function PricingCard({ title, price, features, highlight }: any) {
+function PricingCard({ name, price, period, desc, features, popular }: any) {
   return (
-    <div className={`relative p-6 rounded-3xl border flex flex-col ${highlight ? 'bg-blue-600/10 border-blue-500/50' : 'bg-[#131926] border-white/5'}`}>
-      {highlight && <div className="absolute top-0 right-0 bg-blue-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl rounded-tr-2xl">POPULAR</div>}
-      <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
+    <div className={`p-8 rounded-3xl border ${popular ? 'border-blue-600 bg-white shadow-xl relative' : 'border-slate-200 bg-white'}`}>
+      {popular && (
+        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-bold">
+          Most Popular
+        </div>
+      )}
+      <h3 className="text-xl font-bold text-slate-900 mb-2">{name}</h3>
+      <p className="text-slate-500 text-sm mb-6">{desc}</p>
       <div className="mb-6">
-        <span className="text-3xl font-bold text-white">₹{price}</span>
-        <span className="text-slate-500 text-sm">/mo</span>
+        <span className="text-4xl font-extrabold text-slate-900">{price}</span>
+        {period && <span className="text-slate-500 font-medium">{period}</span>}
       </div>
-      <ul className="space-y-3 mb-8 flex-1">
+      <ul className="space-y-4 mb-8">
         {features.map((f: string, i: number) => (
-          <li key={i} className="flex items-start text-sm text-slate-300">
-            <Check className="w-4 h-4 text-blue-400 mr-2 mt-0.5 shrink-0" />
+          <li key={i} className="flex items-center text-slate-600">
+            <Check className="w-5 h-5 text-green-500 mr-3 shrink-0" />
             {f}
           </li>
         ))}
       </ul>
-      <button className={`w-full py-3 rounded-xl font-bold text-sm transition-all ${highlight ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}>
-        Choose Plan
-      </button>
+      <Link href="/signup" className={`w-full block text-center py-3 rounded-xl font-bold transition-all ${popular ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-slate-100 text-slate-900 hover:bg-slate-200'}`}>
+        Choose {name}
+      </Link>
     </div>
   );
 }
 
-function FaqItem({ q, a }: any) {
+function FAQItem({ question, answer }: { question: string, answer: string }) {
   return (
-    <details className="group bg-[#131926] border border-white/5 rounded-2xl overflow-hidden">
-      <summary className="flex justify-between items-center font-medium cursor-pointer list-none p-6 text-white group-hover:bg-white/5 transition-colors">
-        <span>{q}</span>
+    <details className="group bg-slate-50 rounded-xl">
+      <summary className="flex justify-between items-center font-medium cursor-pointer list-none p-6 text-slate-900">
+        <span>{question}</span>
         <span className="transition group-open:rotate-180">
-          <ChevronRight className="w-5 h-5 text-slate-500" />
+          <ChevronRight className="w-5 h-5 text-slate-400" />
         </span>
       </summary>
-      <div className="text-slate-400 px-6 pb-6 text-sm leading-relaxed border-t border-white/5 pt-4">
-        {a}
+      <div className="text-slate-600 px-6 pb-6 animate-in slide-in-from-top-2">
+        {answer}
       </div>
     </details>
   );
