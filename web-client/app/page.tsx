@@ -41,7 +41,7 @@ export default function LandingPage() {
           <div className="space-y-8 relative z-10 text-center lg:text-left">
             <div className="inline-flex items-center space-x-2 bg-blue-50 border border-blue-100 rounded-full px-4 py-1.5">
               <span className="flex h-2 w-2 rounded-full bg-blue-600 animate-pulse"></span>
-              <span className="text-xs font-bold text-blue-700 tracking-wide uppercase">Live in Nigeria</span>
+              <span className="text-xs font-bold text-blue-700 tracking-wide uppercase">Live on Social Media</span>
             </div>
             
             <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.1]">
@@ -52,7 +52,7 @@ export default function LandingPage() {
             </h1>
             
             <p className="text-lg text-slate-600 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              Stop struggling with slow internet. Send us one video feed, and our Lagos-based cloud servers will relay it to Facebook, YouTube, and Instagram instantly.
+              Stop struggling with slow internet. Send us one video feed, and our cloud servers will relay it to Facebook, YouTube, and Instagram instantly.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
@@ -210,7 +210,7 @@ export default function LandingPage() {
               name="Business"
               price="₦15,000"
               period="/mo"
-              desc="For churches and businesses."
+              desc="For Mosques and businesses."
               features={[
                 "24/7 Streaming",
                 "Unlimited Destinations",
