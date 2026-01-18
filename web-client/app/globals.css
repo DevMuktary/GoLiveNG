@@ -3,12 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 15, 23, 42; /* Slate-950 */
-  --background-end-rgb: 15, 23, 42;
+  --foreground-rgb: 15, 23, 42; /* Dark Slate Text */
+  --background-start-rgb: 255, 255, 255; /* White Background */
+  --background-end-rgb: 248, 250, 252; /* Very Light Slate */
 }
 
 body {
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-start-rgb));
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
 }
