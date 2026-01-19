@@ -3,17 +3,24 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 15, 23, 42; /* Dark Slate Text */
-  --background-start-rgb: 255, 255, 255; /* White Background */
-  --background-end-rgb: 248, 250, 252; /* Very Light Slate */
+  /* Professional Emerald Green Theme */
+  --primary: 16, 185, 129; /* Emerald 500 */
+  --primary-dark: 5, 150, 105; /* Emerald 600 */
+  --secondary: 20, 83, 45; /* Deep Green */
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-start-rgb));
+  color: #0f172a; /* Slate 900 */
+  background: #ffffff;
 }
 
-/* Smooth Scrolling */
+/* Subtle Grid Pattern for "Rare" look */
+.bg-grid-pattern {
+  background-image: radial-gradient(#10b981 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.05;
+}
+
 html {
   scroll-behavior: smooth;
 }
