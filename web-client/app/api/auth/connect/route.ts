@@ -34,7 +34,6 @@ export async function POST(req: Request) {
     // 3. Generate URL (FIXED SCOPES)
     const redirectUri = `${BASE_URL}/api/auth/callback/facebook`;
     
-    // We REMOVED 'pages_show_list' because it was causing the error.
     // We only ask for exactly what you have approved:
     const scope = 'public_profile,pages_manage_posts,pages_read_engagement,publish_video';
     
