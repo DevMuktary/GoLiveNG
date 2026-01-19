@@ -13,30 +13,37 @@ model User {
   email         String        @unique
   passwordHash  String
   createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt  // <-- Added this back to prevent data loss
-
-  // Relations
+  updatedAt     DateTime      @updatedAt
+  
   destinations  Destination[]
   streams       Stream[]
 }
 
 model Destination {
-  id        String   @id @default(cuid())
-  nickname  String   // e.g. "My Gaming Page"
-  platform  String   // "facebook", "youtube", "twitch", "custom"
-  rtmpUrl   String
-  streamKey String
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  nickname     String
+  platform     String   // "facebook", "youtube"
+  
+  // OAuth Fields (New)
+  accessToken  String?  @db.Text
+  refreshToken String?  @db.Text
+  expiresAt    DateTime?
+  
+  // We still store these, but we fetch them automatically now
+  rtmpUrl      String?
+  streamKey    String?
+  
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
 }
 
 model Stream {
   id          String   @id @default(cuid())
   title       String
-  sourceUrl   String   // The link they pasted
-  status      String   @default("IDLE") // LIVE, COMPLETED, FAILED
-  duration    Int?     // In seconds
+  sourceUrl   String
+  status      String   @default("IDLE")
+  duration    Int?
   userId      String
   user        User     @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
