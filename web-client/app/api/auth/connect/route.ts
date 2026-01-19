@@ -18,30 +18,32 @@ export async function POST(req: Request) {
     let decoded: any;
 
     try {
-      // This checks if the token matches our Current Secret
       decoded = jwt.verify(token, JWT_SECRET);
     } catch (err) {
-      // If signature is invalid (secret changed), return 401
-      return NextResponse.json({ error: 'Session expired. Please log in again.' }, { status: 401 });
+      return NextResponse.json({ error: 'Session expired' }, { status: 401 });
     }
 
     const userId = decoded.userId;
 
     // 2. Determine Platform
-    const body = await req.json(); // Safe parsing
+    const body = await req.json();
     const { platform } = body;
     
     if (!platform || platform.toLowerCase() !== 'facebook') {
       return NextResponse.json({ error: 'Only Facebook is supported right now' }, { status: 400 });
     }
 
-    // 3. Set a "State" Cookie (To remember this user during the redirect)
+    // 3. Set a "State" Cookie
     const stateToken = jwt.sign({ userId, platform: 'facebook' }, JWT_SECRET, { expiresIn: '5m' });
     cookies().set('oauth_state', stateToken, { secure: true, httpOnly: true, path: '/' });
 
-    // 4. Generate Official Facebook URL
+    // 4. Generate Official Facebook URL (CORRECTED SCOPES)
     const redirectUri = `${BASE_URL}/api/auth/callback/facebook`;
-    const scope = 'pages_manage_posts,pages_read_engagement,publish_video';
+    
+    // CHANGED: We removed 'pages_show_list'. 
+    // 'pages_read_engagement' is the modern permission to List Pages.
+    // 'pages_manage_posts' allows us to Create the Live Stream.
+    const scope = 'pages_manage_posts,pages_read_engagement'; 
     
     const url = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${FB_CLIENT_ID}&redirect_uri=${redirectUri}&state=${stateToken}&scope=${scope}`;
 
