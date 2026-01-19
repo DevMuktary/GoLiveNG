@@ -1,121 +1,82 @@
 "use client";
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Save, ArrowLeft, Loader2, HelpCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, AlertCircle, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AddDestination() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const platform = searchParams.get('platform') || 'Custom RTMP';
-  
+  const platform = searchParams.get('platform') || 'Facebook';
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    nickname: `${platform} Channel`,
-    streamKey: '',
-    rtmpUrl: '' // Optional for FB/YT as we defaults
-  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // This function redirects the user to the Official Login Page
+  const handleConnect = async () => {
     setLoading(true);
-
-    const token = localStorage.getItem('token');
+    // In a real app, this points to your backend OAuth route
+    // window.location.href = `/api/auth/connect/${platform.toLowerCase()}`;
     
-    await fetch('/api/destinations', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        platform,
-        ...formData
-      })
-    });
-
-    router.push('/dashboard/destinations'); // Go back to list
+    // For now, we simulate the "Success" flow to show you the UX
+    setTimeout(() => {
+        alert("In production, this redirects to " + platform + " to approve permissions.");
+        setLoading(false);
+    }, 1500);
   };
 
-  const isCustom = platform === 'Custom RTMP';
-
   return (
-    <div className="max-w-2xl mx-auto">
-      <Link href="/dashboard/destinations" className="flex items-center text-slate-500 hover:text-emerald-600 mb-6 font-medium">
-        <ArrowLeft className="w-4 h-4 mr-2" /> Back to Destinations
+    <div className="max-w-xl mx-auto pt-10">
+      <Link href="/dashboard/destinations" className="flex items-center text-slate-500 hover:text-slate-800 mb-8 font-medium">
+        <ArrowLeft className="w-4 h-4 mr-2" /> Cancel Connection
       </Link>
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center font-bold text-xl">
-             {platform.charAt(0)}
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Connect {platform}</h1>
-            <p className="text-slate-500">Enter your stream details below.</p>
-          </div>
+      <div className="bg-white border border-slate-200 rounded-3xl p-10 shadow-xl text-center">
+        
+        {/* Platform Logo */}
+        <div className={`w-20 h-20 mx-auto rounded-2xl flex items-center justify-center mb-6 shadow-lg ${
+           platform === 'Facebook' ? 'bg-blue-600' :
+           platform === 'YouTube' ? 'bg-red-600' :
+           platform === 'Twitch' ? 'bg-purple-600' : 'bg-slate-800'
+        }`}>
+           <span className="text-3xl font-bold text-white">{platform.charAt(0)}</span>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Nickname</label>
-            <input 
-              type="text" 
-              required
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
-              placeholder="e.g. My Gaming Page"
-              value={formData.nickname}
-              onChange={e => setFormData({...formData, nickname: e.target.value})}
-            />
-          </div>
+        <h1 className="text-2xl font-bold text-slate-900 mb-2">Connect {platform}</h1>
+        <p className="text-slate-500 mb-8">
+          Grant GoLiveNG permission to stream live video to your {platform} account.
+        </p>
 
-          {/* RTMP URL is hidden for FB/YT/Twitch because we know the defaults */}
-          {isCustom && (
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">RTMP Server URL</label>
-              <input 
-                type="text" 
-                required
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
-                placeholder="rtmp://..."
-                value={formData.rtmpUrl}
-                onChange={e => setFormData({...formData, rtmpUrl: e.target.value})}
-              />
-            </div>
-          )}
+        {/* Permissions List */}
+        <div className="bg-slate-50 rounded-xl p-6 text-left mb-8 space-y-4 border border-slate-100">
+           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">WE WILL BE ABLE TO:</h3>
+           
+           <div className="flex items-start gap-3">
+             <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />
+             <p className="text-sm text-slate-700 font-medium">Create live video posts on your behalf</p>
+           </div>
+           <div className="flex items-start gap-3">
+             <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />
+             <p className="text-sm text-slate-700 font-medium">Read stream keys and RTMP URLs</p>
+           </div>
+           <div className="flex items-start gap-3">
+             <ShieldCheck className="w-5 h-5 text-blue-500 shrink-0" />
+             <p className="text-sm text-slate-700 font-medium">We will <strong>never</strong> post without your permission.</p>
+           </div>
+        </div>
 
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Stream Key</label>
-            <input 
-              type="password" 
-              required
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
-              placeholder="••••-••••-••••-••••"
-              value={formData.streamKey}
-              onChange={e => setFormData({...formData, streamKey: e.target.value})}
-            />
-            <div className="mt-2 text-xs text-slate-400 flex items-center">
-              <HelpCircle className="w-3 h-3 mr-1" />
-              Found in your {platform} Live Creator Studio settings.
-            </div>
-          </div>
+        <button 
+          onClick={handleConnect}
+          disabled={loading}
+          className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition-transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed ${
+            platform === 'Facebook' ? 'bg-[#1877F2] hover:bg-[#166fe5]' :
+            platform === 'YouTube' ? 'bg-[#FF0000] hover:bg-[#d90000]' :
+            platform === 'Twitch' ? 'bg-[#9146FF] hover:bg-[#7a2df9]' : 'bg-slate-900'
+          }`}
+        >
+          {loading ? 'Connecting...' : `Continue with ${platform}`}
+        </button>
 
-          <div className="pt-4">
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center transition-all disabled:opacity-70"
-            >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                <>
-                  <Save className="w-5 h-5 mr-2" /> Save Connection
-                </>
-              )}
-            </button>
-          </div>
-
-        </form>
+        <p className="mt-6 text-xs text-slate-400">
+          By connecting, you agree to the Terms of Service and Privacy Policy.
+        </p>
       </div>
     </div>
   );
