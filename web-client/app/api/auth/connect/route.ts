@@ -36,11 +36,10 @@ export async function POST(req: Request) {
     const redirectUri = `${BASE_URL}/api/auth/callback/facebook`;
     
     // --- UPDATED SCOPES ---
-    // We strictly use the modern permissions required for Business Apps
-    const scope = 'public_profile,pages_manage_posts,pages_read_engagement,publish_video';
+    // Added 'pages_show_list' back as requested
+    const scope = 'public_profile,pages_show_list,pages_manage_posts,pages_read_engagement,publish_video';
     
-    // --- VERSION UPDATE ---
-    // Changed from v18.0 to v22.0 to match modern standards
+    // We stick to v22.0 to ensure compatibility with modern Permissions
     const url = `https://www.facebook.com/v22.0/dialog/oauth?client_id=${FB_CLIENT_ID}&redirect_uri=${redirectUri}&state=${stateToken}&scope=${scope}`;
 
     return NextResponse.json({ url });
