@@ -75,7 +75,7 @@ export async function POST(req: Request) {
         userId,
         title,
         sourceUrl,
-        status: 'STARTING',
+        status: 'LIVE',
         loopCount: Number(loop),
         resolution,
         destinationId: dest.id
