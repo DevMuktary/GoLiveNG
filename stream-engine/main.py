@@ -21,52 +21,16 @@ jwt.init_app(app)
 
 app.register_blueprint(auth_bp, url_prefix='/auth')
 
-# --- HELPER: Smart URL & Header Resolution ---
-def get_stream_info(url):
-    """
-    Returns tuple: (resolved_url, is_live_bool, headers_dict)
-    """
-    print(f"Resolving URL for: {url}")
+# --- 1. THE PIPELINE STREAMING FUNCTION ---
+def run_ffmpeg_pipe(source, destination, loop_count, resolution):
+    print(f"Starting PIPELINE for: {source}")
     
-    cookie_file = 'cookies.txt' if os.path.exists('cookies.txt') else None
-    
-    ydl_opts = {
-        'format': 'best',
-        'quiet': True,
-        'no_warnings': True,
-        'noplaylist': True,
-        'cookiefile': cookie_file
-    }
-
-    # Only use Android Client if NO cookies are present.
-    if not cookie_file:
-        print("No cookies found. Using Android Client bypass.")
-        ydl_opts['extractor_args'] = {'youtube': {'player_client': ['android', 'ios']}}
-    else:
-        print("Cookies found! Using Standard Client.")
-
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            resolved_url = info.get('url', url)
-            is_live = info.get('is_live', False)
-            # CRITICAL: Capture the headers (Cookies, User-Agent) needed to play the video
-            http_headers = info.get('http_headers', {})
-            
-            print(f"Resolved: {resolved_url[:60]}... (Live: {is_live})")
-            return resolved_url, is_live, http_headers
-    except Exception as e:
-        print(f"yt-dlp failed: {str(e)}")
-        return url, False, {}
-
-# --- 1. THE STREAMING FUNCTION ---
-def run_ffmpeg(source, destination, loop_count, resolution):
-    # 1. Get URL, Live Status, and HEADERS
-    real_source, is_live, http_headers = get_stream_info(source)
-    
-    # 2. Determine Bitrate
+    # 1. Configure Quality Settings
+    # We map resolution to a rough bitrate for the ENCODER (sending to FB)
+    # This doesn't affect what we download from YouTube (we always grab best).
     bitrate = '3000k'
     bufsize = '6000k'
+    
     if resolution == '1080p':
         bitrate = '6000k'
         bufsize = '12000k'
@@ -74,37 +38,32 @@ def run_ffmpeg(source, destination, loop_count, resolution):
         bitrate = '12000k'
         bufsize = '24000k'
 
-    print(f"Configuring Stream: {resolution} (Bitrate: {bitrate})")
+    # 2. Build the YT-DLP Command (The Downloader)
+    # We tell it to output to STDOUT (-) instead of a file
+    yt_cmd = [
+        'yt-dlp',
+        '--no-warnings',
+        '--quiet',
+        '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+        '-o', '-'  # Critical: Output to standard out (pipe)
+    ]
 
-    # 3. Format Headers for FFmpeg
-    # FFmpeg expects headers like: "Name: Value\r\nName: Value"
-    header_args = []
-    if http_headers:
-        header_str = ""
-        for key, value in http_headers.items():
-            header_str += f"{key}: {value}\r\n"
-        
-        # Remove the last new line
-        if header_str:
-            header_args = ['-headers', header_str]
-            print("Injecting authentication headers into FFmpeg...")
+    # Handle Cookies / Android Bypass
+    if os.path.exists('cookies.txt'):
+        print("Using cookies.txt for authorization")
+        yt_cmd.extend(['--cookies', 'cookies.txt'])
+    else:
+        print("No cookies found. Using Android Client bypass.")
+        yt_cmd.extend(['--extractor-args', 'youtube:player_client=android'])
 
-    # 4. Build Command
-    cmd = ['ffmpeg']
+    yt_cmd.append(source)
 
-    # CRITICAL: Headers must come BEFORE the input (-i)
-    if header_args:
-        cmd.extend(header_args)
-
-    # Use -re ONLY for VOD/Files
-    if not is_live:
-        cmd.append('-re')
-
-    if not is_live:
-        cmd.extend(['-stream_loop', str(loop_count)])
-
-    cmd.extend([
-        '-i', real_source,
+    # 3. Build the FFmpeg Command (The Encoder)
+    # We tell it to read from STDIN (pipe:0)
+    ffmpeg_cmd = [
+        'ffmpeg',
+        '-re',          # Read input at native framerate (prevents sending too fast)
+        '-i', 'pipe:0', # Critical: Read from the pipe
         '-c:v', 'libx264',
         '-preset', 'veryfast',
         '-maxrate', bitrate,
@@ -116,14 +75,37 @@ def run_ffmpeg(source, destination, loop_count, resolution):
         '-ar', '44100',
         '-f', 'flv',
         destination
-    ])
-    
-    print(f"Starting FFMPEG: {' '.join(cmd)}")
+    ]
+
+    print(f"Pipeline Configured. \nYT-DLP: {' '.join(yt_cmd)}\nFFMPEG: {' '.join(ffmpeg_cmd)}")
+
+    # 4. Execute the Pipeline
     try:
-        subprocess.run(cmd, check=True)
-        print("Stream finished successfully.")
-    except subprocess.CalledProcessError as e:
-        print(f"Stream crashed: {e}")
+        # Start yt-dlp process
+        yt_process = subprocess.Popen(yt_cmd, stdout=subprocess.PIPE)
+        
+        # Start ffmpeg process, connecting yt-dlp's stdout to ffmpeg's stdin
+        ffmpeg_process = subprocess.Popen(ffmpeg_cmd, stdin=yt_process.stdout)
+        
+        # Allow yt_process to receive a SIGPIPE if ffmpeg exits
+        # This effectively links them together
+        if yt_process.stdout:
+            yt_process.stdout.close()
+
+        # Wait for finish
+        ffmpeg_process.wait()
+        yt_process.wait()
+        
+        print("Stream Pipeline Finished.")
+
+    except Exception as e:
+        print(f"Pipeline Crashed: {e}")
+        # Ensure we kill processes on crash
+        try:
+            yt_process.kill()
+            ffmpeg_process.kill()
+        except:
+            pass
 
 # --- 2. THE API ENDPOINT ---
 @app.route('/start_stream', methods=['POST'])
@@ -131,7 +113,7 @@ def start_stream():
     data = request.json
     source_url = data.get('source_url')
     rtmp_url = data.get('rtmp_url')
-    loop_count = data.get('loop_count', 0)
+    loop_count = data.get('loop_count', 0) # loop is hard with pipes, we ignore it for live
     resolution = data.get('resolution', '720p')
 
     print(f"Received Start Request: Source={source_url}, Quality={resolution}")
@@ -139,7 +121,8 @@ def start_stream():
     if not source_url or not rtmp_url:
         return jsonify({"error": "Missing source or RTMP URL"}), 400
 
-    thread = threading.Thread(target=run_ffmpeg, args=(source_url, rtmp_url, loop_count, resolution))
+    # Start the pipeline thread
+    thread = threading.Thread(target=run_ffmpeg_pipe, args=(source_url, rtmp_url, loop_count, resolution))
     thread.start()
 
     return jsonify({"message": "Stream started", "status": "processing"}), 200
