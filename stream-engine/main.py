@@ -20,7 +20,7 @@ jwt.init_app(app)
 
 app.register_blueprint(auth_bp, url_prefix='/auth')
 
-# --- NEW: Background Streamer Function ---
+# --- 1. THE STREAMING FUNCTION ---
 def run_ffmpeg(source, destination, loop_count):
     # Construct FFmpeg command
     # -re = Read input at native framerate
@@ -43,16 +43,22 @@ def run_ffmpeg(source, destination, loop_count):
         destination
     ]
     
-    print(f"Starting Stream: {' '.join(cmd)}")
-    subprocess.run(cmd)
+    print(f"Starting Stream Command: {' '.join(cmd)}")
+    try:
+        subprocess.run(cmd, check=True)
+        print("Stream finished successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Stream crashed: {e}")
 
-# --- NEW: API Endpoint to Trigger Stream ---
+# --- 2. THE API ENDPOINT ---
 @app.route('/start_stream', methods=['POST'])
 def start_stream():
     data = request.json
     source_url = data.get('source_url')
     rtmp_url = data.get('rtmp_url')
     loop_count = data.get('loop_count', 0)
+
+    print(f"Received Start Request: Source={source_url}, Target={rtmp_url}")
 
     if not source_url or not rtmp_url:
         return jsonify({"error": "Missing source or RTMP URL"}), 400
