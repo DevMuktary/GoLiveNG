@@ -6,6 +6,7 @@ Flask-JWT-Extended==4.5.3
 gunicorn==21.2.0
 requests>=2.31.0
 yt-dlp>=2024.04.09
+streamlink>=6.7.3
 ffmpeg-python==0.2.0
 python-dotenv==1.0.0
 psycopg2-binary==2.9.9
