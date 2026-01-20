@@ -22,17 +22,12 @@ model User {
 model Destination {
   id           String   @id @default(cuid())
   nickname     String
-  platform     String   // "facebook", "youtube"
-  
-  // OAuth Fields (New)
+  platform     String   
   accessToken  String?  @db.Text
   refreshToken String?  @db.Text
   expiresAt    DateTime?
-  
-  // We still store these, but we fetch them automatically now
   rtmpUrl      String?
   streamKey    String?
-  
   userId       String
   user         User     @relation(fields: [userId], references: [id])
   createdAt    DateTime @default(now())
@@ -42,8 +37,14 @@ model Stream {
   id          String   @id @default(cuid())
   title       String
   sourceUrl   String
-  status      String   @default("IDLE")
-  duration    Int?
+  status      String   @default("IDLE") // STARTING, LIVE, COMPLETED, FAILED
+  
+  // --- NEW FIELDS FOR LOOPING ---
+  loopCount   Int      @default(0)      // 0 = No loop, -1 = Infinite, >0 = Count
+  resolution  String   @default("720p")
+  
+  destinationId String?
+  
   userId      String
   user        User     @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
