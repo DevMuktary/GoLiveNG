@@ -2,14 +2,17 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Trash2, Facebook, Youtube, Twitch, Cast, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { 
+  Trash2, Facebook, Youtube, Twitch, Cast, 
+  Loader2, CheckCircle, AlertCircle, Eye 
+} from 'lucide-react';
 
 export default function DestinationsPage() {
   const [destinations, setDestinations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
 
-  // Load Data
+  // 1. Load Connected Accounts
   useEffect(() => {
     const fetchDests = async () => {
       const token = localStorage.getItem('token');
@@ -17,7 +20,10 @@ export default function DestinationsPage() {
         const res = await fetch('/api/destinations', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (res.ok) setDestinations(await res.json());
+        if (res.ok) {
+          const data = await res.json();
+          setDestinations(data);
+        }
       } catch (e) {
         console.error("Failed to load destinations");
       } finally {
@@ -27,9 +33,10 @@ export default function DestinationsPage() {
     fetchDests();
   }, []);
 
-  // Delete Handler
+  // 2. Delete Handler
   const handleDelete = async (id: string) => {
-    if (!confirm('Disconnect this account?')) return;
+    if (!confirm('Disconnect this account? This will stop all scheduled streams to this target.')) return;
+    
     const token = localStorage.getItem('token');
     await fetch(`/api/destinations?id=${id}`, {
       method: 'DELETE',
@@ -38,13 +45,34 @@ export default function DestinationsPage() {
     setDestinations(destinations.filter(d => d.id !== id));
   };
 
+  // 3. Test Pages Handler (New Feature)
+  const handleCheckPages = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      alert("Fetching your pages from Facebook... This may take a few seconds.");
+      const res = await fetch('/api/destinations/facebook/pages', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      
+      if (data.pages) {
+        const pageNames = data.pages.map((p: any) => `• ${p.name} (${p.category})`).join('\n');
+        alert(`SUCCESS! Found ${data.pages.length} Pages:\n\n${pageNames}\n\n• Your Profile (${data.profile.name})`);
+      } else {
+        alert("Error: " + (data.error || "Could not fetch pages."));
+      }
+    } catch (e) {
+      alert("Connection failed. Please check your internet.");
+    }
+  };
+
   // Helper to get Icon
   const getIcon = (platform: string) => {
     switch (platform) {
-        case 'facebook': return <Facebook className="text-white" />;
-        case 'youtube': return <Youtube className="text-white" />;
-        case 'twitch': return <Twitch className="text-white" />;
-        default: return <Cast className="text-white" />;
+        case 'facebook': return <Facebook className="w-6 h-6 text-white" />;
+        case 'youtube': return <Youtube className="w-6 h-6 text-white" />;
+        case 'twitch': return <Twitch className="w-6 h-6 text-white" />;
+        default: return <Cast className="w-6 h-6 text-white" />;
     }
   }
 
@@ -61,15 +89,21 @@ export default function DestinationsPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-12 pb-12">
       
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Destinations</h1>
+        <p className="text-slate-500">Manage where your broadcasts are sent.</p>
+      </div>
+
       {/* Success/Error Messages */}
       {searchParams.get('success') && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl flex items-center">
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl flex items-center animate-in fade-in slide-in-from-top-2">
             <CheckCircle className="w-5 h-5 mr-2" />
             <span className="font-bold">Account connected successfully!</span>
         </div>
       )}
       {searchParams.get('error') && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center animate-in fade-in slide-in-from-top-2">
             <AlertCircle className="w-5 h-5 mr-2" />
             <span className="font-bold">Connection failed. Please try again.</span>
         </div>
@@ -77,7 +111,7 @@ export default function DestinationsPage() {
 
       {/* 1. Add New Section */}
       <section>
-        <h2 className="text-xl font-bold text-slate-900 mb-6">Connect New Platform</h2>
+        <h2 className="text-lg font-bold text-slate-900 mb-6">Connect New Platform</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           <ConnectCard platform="Facebook" icon={<Facebook className="text-white" />} color="bg-blue-600" />
           <ConnectCard platform="YouTube" icon={<Youtube className="text-white" />} color="bg-red-600" />
@@ -88,10 +122,10 @@ export default function DestinationsPage() {
 
       {/* 2. Connected List */}
       <section>
-        <h2 className="text-xl font-bold text-slate-900 mb-6">Active Connections</h2>
+        <h2 className="text-lg font-bold text-slate-900 mb-6">Active Connections</h2>
         
         {loading ? (
-          <div className="flex justify-center py-8"><Loader2 className="animate-spin text-emerald-600" /></div>
+          <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-emerald-600" /></div>
         ) : destinations.length === 0 ? (
           <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-12 text-center text-slate-400">
             No accounts connected yet. Select a platform above.
@@ -99,7 +133,9 @@ export default function DestinationsPage() {
         ) : (
           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm divide-y divide-slate-100">
             {destinations.map((dest) => (
-              <div key={dest.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors">
+              <div key={dest.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between hover:bg-slate-50 transition-colors gap-4">
+                
+                {/* Left: Icon & Info */}
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-white shadow-sm ${getColor(dest.platform)}`}>
                     {getIcon(dest.platform)}
@@ -107,9 +143,9 @@ export default function DestinationsPage() {
                   <div>
                     <h3 className="font-bold text-slate-900 text-lg">{dest.nickname}</h3>
                     
-                    {/* CRASH FIX: We check if it's OAuth or RTMP */}
+                    {/* Display Logic: Key vs OAuth */}
                     {dest.streamKey ? (
-                        <p className="text-xs text-slate-500 font-mono mt-1">
+                        <p className="text-xs text-slate-500 font-mono mt-1 bg-slate-100 px-2 py-0.5 rounded inline-block">
                           Key: {dest.streamKey.substring(0, 4)}••••••••••••
                         </p>
                     ) : (
@@ -123,15 +159,30 @@ export default function DestinationsPage() {
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-4">
+                {/* Right: Actions */}
+                <div className="flex items-center gap-3">
+                   
+                   {/* Special Test Button for Facebook */}
+                   {dest.platform === 'facebook' && (
+                     <button 
+                       onClick={handleCheckPages}
+                       className="flex items-center px-3 py-2 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100 transition-colors"
+                     >
+                       <Eye className="w-3 h-3 mr-2" /> View Pages
+                     </button>
+                   )}
+
+                   <div className="h-4 w-px bg-slate-200 mx-2 hidden md:block"></div>
+
                    <button 
                      onClick={() => handleDelete(dest.id)}
-                     className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                     title="Disconnect"
+                     className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                     title="Disconnect Account"
                    >
                      <Trash2 className="w-5 h-5" />
                    </button>
                 </div>
+
               </div>
             ))}
           </div>
