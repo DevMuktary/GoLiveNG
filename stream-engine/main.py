@@ -5,7 +5,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from extensions import db, bcrypt, jwt
 from auth import auth_bp
-import yt_dlp  # CRITICAL: This requires the updated requirements.txt
+import yt_dlp
 
 app = Flask(__name__)
 CORS(app)
@@ -21,40 +21,55 @@ jwt.init_app(app)
 
 app.register_blueprint(auth_bp, url_prefix='/auth')
 
-# --- HELPER: Resolve YouTube/Live URL ---
-def get_real_stream_url(url):
+# --- HELPER: Resolve URL & Check if Live ---
+def get_stream_info(url):
     """
-    Uses yt-dlp to extract the underlying .m3u8 or .mp4 URL.
-    This works for both YouTube Videos AND Live Streams.
+    Returns tuple: (resolved_url, is_live_bool)
     """
     print(f"Resolving URL for: {url}")
     try:
         ydl_opts = {
-            'format': 'best',  # 'best' automatically picks m3u8 for Live streams
+            'format': 'best',
             'quiet': True,
             'no_warnings': True,
             'noplaylist': True
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-            if 'url' in info:
-                print(f"Resolved to: {info['url']}")
-                return info['url']
+            resolved_url = info.get('url', url)
+            # yt-dlp sets 'is_live' to True for live streams
+            is_live = info.get('is_live', False)
+            
+            print(f"Resolved: {resolved_url[:60]}... (Live: {is_live})")
+            return resolved_url, is_live
+            
     except Exception as e:
         print(f"yt-dlp failed (using original): {str(e)}")
-    
-    return url
+        # Default to assuming it's NOT live if we can't check, 
+        # or assume False to be safe with files.
+        return url, False
 
 # --- 1. THE STREAMING FUNCTION ---
 def run_ffmpeg(source, destination, loop_count):
-    # 1. Get the actual streamable link
-    real_source = get_real_stream_url(source)
+    # 1. Get URL and Live Status
+    real_source, is_live = get_stream_info(source)
     
-    # 2. Construct FFmpeg command
-    cmd = [
-        'ffmpeg',
-        '-re',
-        '-stream_loop', str(loop_count),
+    # 2. Build Command
+    cmd = ['ffmpeg']
+
+    # CRITICAL FIX: Only use -re (Native Read Rate) for FILES.
+    # Using it on Live streams causes the "frame=0" hang.
+    if not is_live:
+        print("Source is VOD/File. Using -re (Real-time input simulation).")
+        cmd.append('-re')
+    else:
+        print("Source is LIVE. Skipping -re.")
+
+    # Loop only makes sense for files
+    if not is_live:
+        cmd.extend(['-stream_loop', str(loop_count)])
+
+    cmd.extend([
         '-i', real_source,
         '-c:v', 'libx264',
         '-preset', 'veryfast',
@@ -67,7 +82,7 @@ def run_ffmpeg(source, destination, loop_count):
         '-ar', '44100',
         '-f', 'flv',
         destination
-    ]
+    ])
     
     print(f"Starting FFMPEG: {' '.join(cmd)}")
     try:
@@ -89,7 +104,6 @@ def start_stream():
     if not source_url or not rtmp_url:
         return jsonify({"error": "Missing source or RTMP URL"}), 400
 
-    # Start in background thread
     thread = threading.Thread(target=run_ffmpeg, args=(source_url, rtmp_url, loop_count))
     thread.start()
 
@@ -100,5 +114,4 @@ def health():
     return jsonify({"status": "Stream Engine Online"})
 
 if __name__ == "__main__":
-    # Local development fallback
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8000)))
