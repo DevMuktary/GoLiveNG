@@ -5,7 +5,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from extensions import db, bcrypt, jwt
 from auth import auth_bp
-import yt_dlp  # <--- NEW IMPORT
+import yt_dlp  # CRITICAL: This requires the updated requirements.txt
 
 app = Flask(__name__)
 CORS(app)
@@ -21,15 +21,16 @@ jwt.init_app(app)
 
 app.register_blueprint(auth_bp, url_prefix='/auth')
 
-# --- HELPER: EXTRACT REAL URL ---
-def get_stream_url(url):
+# --- HELPER: Resolve YouTube/Live URL ---
+def get_real_stream_url(url):
     """
-    Uses yt-dlp to extract the underlying media URL.
-    Works for YouTube Videos AND Live Streams.
+    Uses yt-dlp to extract the underlying .m3u8 or .mp4 URL.
+    This works for both YouTube Videos AND Live Streams.
     """
+    print(f"Resolving URL for: {url}")
     try:
         ydl_opts = {
-            'format': 'best',  # Gets best quality (mp4 or m3u8 for live)
+            'format': 'best',  # 'best' automatically picks m3u8 for Live streams
             'quiet': True,
             'no_warnings': True,
             'noplaylist': True
@@ -37,21 +38,19 @@ def get_stream_url(url):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             if 'url' in info:
-                print(f"Resolved URL: {info['url']}")
+                print(f"Resolved to: {info['url']}")
                 return info['url']
     except Exception as e:
-        print(f"Could not resolve URL with yt-dlp (using original): {e}")
+        print(f"yt-dlp failed (using original): {str(e)}")
     
     return url
 
 # --- 1. THE STREAMING FUNCTION ---
 def run_ffmpeg(source, destination, loop_count):
-    # 1. Resolve the actual stream URL (Handling YouTube/Live)
-    real_source = get_stream_url(source)
-
+    # 1. Get the actual streamable link
+    real_source = get_real_stream_url(source)
+    
     # 2. Construct FFmpeg command
-    # -re = Read input at native framerate
-    # -stream_loop = How many times to loop (-1 is infinite)
     cmd = [
         'ffmpeg',
         '-re',
@@ -62,7 +61,7 @@ def run_ffmpeg(source, destination, loop_count):
         '-maxrate', '3000k',
         '-bufsize', '6000k',
         '-pix_fmt', 'yuv420p',
-        '-g', '50',  # Keyframe interval (crucial for FB)
+        '-g', '50',
         '-c:a', 'aac',
         '-b:a', '128k',
         '-ar', '44100',
@@ -70,7 +69,7 @@ def run_ffmpeg(source, destination, loop_count):
         destination
     ]
     
-    print(f"Starting Stream Command: {' '.join(cmd)}")
+    print(f"Starting FFMPEG: {' '.join(cmd)}")
     try:
         subprocess.run(cmd, check=True)
         print("Stream finished successfully.")
@@ -90,7 +89,7 @@ def start_stream():
     if not source_url or not rtmp_url:
         return jsonify({"error": "Missing source or RTMP URL"}), 400
 
-    # Run FFmpeg in a background thread so we don't block the API
+    # Start in background thread
     thread = threading.Thread(target=run_ffmpeg, args=(source_url, rtmp_url, loop_count))
     thread.start()
 
@@ -101,4 +100,5 @@ def health():
     return jsonify({"status": "Stream Engine Online"})
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8000)
+    # Local development fallback
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8000)))
