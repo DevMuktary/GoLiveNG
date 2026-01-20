@@ -1,11 +1,11 @@
 import os
 import subprocess
 import threading
+import time
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from extensions import db, bcrypt, jwt
 from auth import auth_bp
-import yt_dlp
 
 app = Flask(__name__)
 CORS(app)
@@ -21,55 +21,49 @@ jwt.init_app(app)
 
 app.register_blueprint(auth_bp, url_prefix='/auth')
 
-# --- 1. THE PIPELINE STREAMING FUNCTION ---
-def run_ffmpeg_pipe(source, destination, loop_count, resolution):
-    print(f"Starting PIPELINE for: {source}")
+# --- 1. THE STREAMLINK PIPELINE ---
+def run_streamlink_pipe(source, destination, resolution):
+    print(f"Starting Streamlink Pipeline for: {source}")
     
-    # 1. Configure Quality Settings
-    # We map resolution to a rough bitrate for the ENCODER (sending to FB)
-    # This doesn't affect what we download from YouTube (we always grab best).
-    bitrate = '3000k'
-    bufsize = '6000k'
-    
+    # 1. Map Quality to Streamlink format
+    # Streamlink uses 'best', '1080p', '720p', etc.
+    sl_quality = 'best'
     if resolution == '1080p':
-        bitrate = '6000k'
-        bufsize = '12000k'
+        sl_quality = '1080p,best'
+    elif resolution == '720p':
+        sl_quality = '720p,best'
     elif resolution == '4K':
-        bitrate = '12000k'
-        bufsize = '24000k'
+        sl_quality = '4k,best'
 
-    # 2. Build the YT-DLP Command (The Downloader)
-    # We tell it to output to STDOUT (-) instead of a file
-    yt_cmd = [
-        'yt-dlp',
-        '--no-warnings',
-        '--quiet',
-        '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-        '-o', '-'  # Critical: Output to standard out (pipe)
+    # 2. Build Streamlink Command (The Fetcher)
+    # --stdout: Writes the video data to the pipe instead of a file
+    # --hls-live-restart: Helps if the stream glitches, it tries to pick up where it left off
+    sl_cmd = [
+        'streamlink',
+        source,
+        sl_quality,
+        '--stdout',
+        '--hls-live-restart',
+        '--retry-streams', '5',
+        '--retry-open', '5'
     ]
 
-    # Handle Cookies / Android Bypass
-    if os.path.exists('cookies.txt'):
-        print("Using cookies.txt for authorization")
-        yt_cmd.extend(['--cookies', 'cookies.txt'])
-    else:
-        print("No cookies found. Using Android Client bypass.")
-        yt_cmd.extend(['--extractor-args', 'youtube:player_client=android'])
+    # Optional: If you still have cookies.txt, Streamlink can use it via options,
+    # but for public YouTube streams, it usually works better without them to avoid "Account" flags.
+    # We rely on Streamlink's native handling here.
 
-    yt_cmd.append(source)
-
-    # 3. Build the FFmpeg Command (The Encoder)
-    # We tell it to read from STDIN (pipe:0)
+    # 3. Build FFmpeg Command (The Encoder)
+    # -i pipe:0 : Reads the raw video data coming from Streamlink
     ffmpeg_cmd = [
         'ffmpeg',
-        '-re',          # Read input at native framerate (prevents sending too fast)
-        '-i', 'pipe:0', # Critical: Read from the pipe
+        '-re',           # Read at native speed (crucial for pipes to prevent buffer overflows)
+        '-i', 'pipe:0',  # INPUT: The pipe from Streamlink
         '-c:v', 'libx264',
         '-preset', 'veryfast',
-        '-maxrate', bitrate,
-        '-bufsize', bufsize,
+        '-maxrate', '4000k' if resolution == '1080p' else '2500k',
+        '-bufsize', '8000k',
         '-pix_fmt', 'yuv420p',
-        '-g', '50',
+        '-g', '50',      # Keyframe interval for FB
         '-c:a', 'aac',
         '-b:a', '128k',
         '-ar', '44100',
@@ -77,35 +71,41 @@ def run_ffmpeg_pipe(source, destination, loop_count, resolution):
         destination
     ]
 
-    print(f"Pipeline Configured. \nYT-DLP: {' '.join(yt_cmd)}\nFFMPEG: {' '.join(ffmpeg_cmd)}")
+    print(f"Pipeline Launching...\nFETCHER: {' '.join(sl_cmd)}\nENCODER: {' '.join(ffmpeg_cmd)}")
 
     # 4. Execute the Pipeline
-    try:
-        # Start yt-dlp process
-        yt_process = subprocess.Popen(yt_cmd, stdout=subprocess.PIPE)
-        
-        # Start ffmpeg process, connecting yt-dlp's stdout to ffmpeg's stdin
-        ffmpeg_process = subprocess.Popen(ffmpeg_cmd, stdin=yt_process.stdout)
-        
-        # Allow yt_process to receive a SIGPIPE if ffmpeg exits
-        # This effectively links them together
-        if yt_process.stdout:
-            yt_process.stdout.close()
+    sl_process = None
+    ffmpeg_process = None
 
-        # Wait for finish
-        ffmpeg_process.wait()
-        yt_process.wait()
+    try:
+        # Start Streamlink (Writing to Pipe)
+        sl_process = subprocess.Popen(sl_cmd, stdout=subprocess.PIPE)
         
-        print("Stream Pipeline Finished.")
+        # Start FFmpeg (Reading from Streamlink's Output)
+        ffmpeg_process = subprocess.Popen(ffmpeg_cmd, stdin=sl_process.stdout)
+        
+        # Allow sl_process to receive a SIGPIPE if ffmpeg exits
+        # This closes the streamlink process if ffmpeg crashes/stops
+        if sl_process.stdout:
+            sl_process.stdout.close()
+
+        # Monitor processes
+        ffmpeg_process.wait()
+        print("FFmpeg process finished.")
+        
+        sl_process.wait()
+        print("Streamlink process finished.")
 
     except Exception as e:
-        print(f"Pipeline Crashed: {e}")
-        # Ensure we kill processes on crash
-        try:
-            yt_process.kill()
+        print(f"Pipeline Critical Error: {e}")
+    finally:
+        # Ensure cleanup
+        if sl_process and sl_process.poll() is None:
+            print("Killing Streamlink...")
+            sl_process.kill()
+        if ffmpeg_process and ffmpeg_process.poll() is None:
+            print("Killing FFmpeg...")
             ffmpeg_process.kill()
-        except:
-            pass
 
 # --- 2. THE API ENDPOINT ---
 @app.route('/start_stream', methods=['POST'])
@@ -113,19 +113,19 @@ def start_stream():
     data = request.json
     source_url = data.get('source_url')
     rtmp_url = data.get('rtmp_url')
-    loop_count = data.get('loop_count', 0) # loop is hard with pipes, we ignore it for live
-    resolution = data.get('resolution', '720p')
+    # Loop count is not supported in a live pipe (it goes until the stream ends)
+    resolution = data.get('resolution', '1080p')
 
     print(f"Received Start Request: Source={source_url}, Quality={resolution}")
 
     if not source_url or not rtmp_url:
         return jsonify({"error": "Missing source or RTMP URL"}), 400
 
-    # Start the pipeline thread
-    thread = threading.Thread(target=run_ffmpeg_pipe, args=(source_url, rtmp_url, loop_count, resolution))
+    # Launch background thread
+    thread = threading.Thread(target=run_streamlink_pipe, args=(source_url, rtmp_url, resolution))
     thread.start()
 
-    return jsonify({"message": "Stream started", "status": "processing"}), 200
+    return jsonify({"message": "Stream started (Streamlink Mode)", "status": "processing"}), 200
 
 @app.route('/')
 def health():
