@@ -19,8 +19,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 5. Copy the rest of the application code
 COPY . .
 
-# 6. Expose the port
+# 6. Expose the port (Documentation only)
 EXPOSE 8000
 
-# 7. Start the server using Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--timeout", "120", "main:app"]
+# 7. Start the server using Gunicorn with DYNAMIC PORT binding
+# We use shell form (no brackets) to allow variable substitution for ${PORT}
+CMD gunicorn --bind 0.0.0.0:${PORT:-8000} --timeout 120 main:app
