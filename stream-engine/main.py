@@ -27,26 +27,38 @@ def get_stream_info(url):
     Returns tuple: (resolved_url, is_live_bool)
     """
     print(f"Resolving URL for: {url}")
+    
+    # Check for optional cookies.txt
+    cookie_file = 'cookies.txt' if os.path.exists('cookies.txt') else None
+    if cookie_file:
+        print("Found cookies.txt! Using it for authentication.")
+
     try:
         ydl_opts = {
             'format': 'best',
             'quiet': True,
             'no_warnings': True,
-            'noplaylist': True
+            'noplaylist': True,
+            # CRITICAL FIX: Use Android client to bypass "Sign in to confirm" on servers
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'ios']
+                }
+            },
+            'cookiefile': cookie_file
         }
+        
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             resolved_url = info.get('url', url)
-            # yt-dlp sets 'is_live' to True for live streams
             is_live = info.get('is_live', False)
             
             print(f"Resolved: {resolved_url[:60]}... (Live: {is_live})")
             return resolved_url, is_live
             
     except Exception as e:
-        print(f"yt-dlp failed (using original): {str(e)}")
-        # Default to assuming it's NOT live if we can't check, 
-        # or assume False to be safe with files.
+        print(f"yt-dlp failed: {str(e)}")
+        # If headers fail, we return None or original to fail gracefully
         return url, False
 
 # --- 1. THE STREAMING FUNCTION ---
@@ -57,15 +69,13 @@ def run_ffmpeg(source, destination, loop_count):
     # 2. Build Command
     cmd = ['ffmpeg']
 
-    # CRITICAL FIX: Only use -re (Native Read Rate) for FILES.
-    # Using it on Live streams causes the "frame=0" hang.
+    # Use -re ONLY for VOD/Files. Never for Live.
     if not is_live:
         print("Source is VOD/File. Using -re (Real-time input simulation).")
         cmd.append('-re')
     else:
         print("Source is LIVE. Skipping -re.")
 
-    # Loop only makes sense for files
     if not is_live:
         cmd.extend(['-stream_loop', str(loop_count)])
 
