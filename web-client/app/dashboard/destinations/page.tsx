@@ -1,21 +1,28 @@
 "use client";
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, Trash2, Facebook, Youtube, Twitch, Cast, Loader2 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { Trash2, Facebook, Youtube, Twitch, Cast, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function DestinationsPage() {
   const [destinations, setDestinations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const searchParams = useSearchParams();
 
   // Load Data
   useEffect(() => {
     const fetchDests = async () => {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/destinations', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) setDestinations(await res.json());
-      setLoading(false);
+      try {
+        const res = await fetch('/api/destinations', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) setDestinations(await res.json());
+      } catch (e) {
+        console.error("Failed to load destinations");
+      } finally {
+        setLoading(false);
+      }
     };
     fetchDests();
   }, []);
@@ -31,9 +38,43 @@ export default function DestinationsPage() {
     setDestinations(destinations.filter(d => d.id !== id));
   };
 
+  // Helper to get Icon
+  const getIcon = (platform: string) => {
+    switch (platform) {
+        case 'facebook': return <Facebook className="text-white" />;
+        case 'youtube': return <Youtube className="text-white" />;
+        case 'twitch': return <Twitch className="text-white" />;
+        default: return <Cast className="text-white" />;
+    }
+  }
+
+  // Helper to get Color
+  const getColor = (platform: string) => {
+    switch (platform) {
+        case 'facebook': return 'bg-blue-600';
+        case 'youtube': return 'bg-red-600';
+        case 'twitch': return 'bg-purple-600';
+        default: return 'bg-slate-800';
+    }
+  }
+
   return (
-    <div className="max-w-5xl mx-auto space-y-12">
+    <div className="max-w-5xl mx-auto space-y-12 pb-12">
       
+      {/* Success/Error Messages */}
+      {searchParams.get('success') && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl flex items-center">
+            <CheckCircle className="w-5 h-5 mr-2" />
+            <span className="font-bold">Account connected successfully!</span>
+        </div>
+      )}
+      {searchParams.get('error') && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center">
+            <AlertCircle className="w-5 h-5 mr-2" />
+            <span className="font-bold">Connection failed. Please try again.</span>
+        </div>
+      )}
+
       {/* 1. Add New Section */}
       <section>
         <h2 className="text-xl font-bold text-slate-900 mb-6">Connect New Platform</h2>
@@ -60,27 +101,33 @@ export default function DestinationsPage() {
             {destinations.map((dest) => (
               <div key={dest.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-white shadow-sm ${
-                    dest.platform === 'facebook' ? 'bg-blue-600' : 
-                    dest.platform === 'youtube' ? 'bg-red-600' : 'bg-slate-800'
-                  }`}>
-                    {dest.platform.charAt(0).toUpperCase()}
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-white shadow-sm ${getColor(dest.platform)}`}>
+                    {getIcon(dest.platform)}
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-900">{dest.nickname}</h3>
-                    <p className="text-xs text-slate-500 font-mono">
-                      {dest.streamKey.substring(0, 4)}••••••••••••
-                    </p>
+                    <h3 className="font-bold text-slate-900 text-lg">{dest.nickname}</h3>
+                    
+                    {/* CRASH FIX: We check if it's OAuth or RTMP */}
+                    {dest.streamKey ? (
+                        <p className="text-xs text-slate-500 font-mono mt-1">
+                          Key: {dest.streamKey.substring(0, 4)}••••••••••••
+                        </p>
+                    ) : (
+                        <div className="flex items-center mt-1">
+                            <span className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></span>
+                            <p className="text-xs text-emerald-600 font-bold uppercase tracking-wider">
+                                Connected via OAuth
+                            </p>
+                        </div>
+                    )}
                   </div>
                 </div>
                 
                 <div className="flex items-center gap-4">
-                   <div className="flex items-center text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
-                     Active
-                   </div>
                    <button 
                      onClick={() => handleDelete(dest.id)}
-                     className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                     className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                     title="Disconnect"
                    >
                      <Trash2 className="w-5 h-5" />
                    </button>
