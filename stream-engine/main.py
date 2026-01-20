@@ -21,16 +21,15 @@ jwt.init_app(app)
 
 app.register_blueprint(auth_bp, url_prefix='/auth')
 
-# --- HELPER: Smart URL Resolution ---
+# --- HELPER: Smart URL & Header Resolution ---
 def get_stream_info(url):
     """
-    Returns tuple: (resolved_url, is_live_bool)
+    Returns tuple: (resolved_url, is_live_bool, headers_dict)
     """
     print(f"Resolving URL for: {url}")
     
     cookie_file = 'cookies.txt' if os.path.exists('cookies.txt') else None
     
-    # Base Options
     ydl_opts = {
         'format': 'best',
         'quiet': True,
@@ -39,8 +38,7 @@ def get_stream_info(url):
         'cookiefile': cookie_file
     }
 
-    # CRITICAL FIX: Only use Android Client if NO cookies are present.
-    # Mixing Desktop Cookies with Android Client causes "No video formats found".
+    # Only use Android Client if NO cookies are present.
     if not cookie_file:
         print("No cookies found. Using Android Client bypass.")
         ydl_opts['extractor_args'] = {'youtube': {'player_client': ['android', 'ios']}}
@@ -52,23 +50,23 @@ def get_stream_info(url):
             info = ydl.extract_info(url, download=False)
             resolved_url = info.get('url', url)
             is_live = info.get('is_live', False)
+            # CRITICAL: Capture the headers (Cookies, User-Agent) needed to play the video
+            http_headers = info.get('http_headers', {})
+            
             print(f"Resolved: {resolved_url[:60]}... (Live: {is_live})")
-            return resolved_url, is_live
+            return resolved_url, is_live, http_headers
     except Exception as e:
         print(f"yt-dlp failed: {str(e)}")
-        # Fallback: Return original URL (FFmpeg might handle it if it's a direct link)
-        return url, False
+        return url, False, {}
 
 # --- 1. THE STREAMING FUNCTION ---
 def run_ffmpeg(source, destination, loop_count, resolution):
-    # 1. Get URL and Live Status
-    real_source, is_live = get_stream_info(source)
+    # 1. Get URL, Live Status, and HEADERS
+    real_source, is_live, http_headers = get_stream_info(source)
     
-    # 2. Determine Bitrate based on Resolution
-    # Defaults to 720p settings
+    # 2. Determine Bitrate
     bitrate = '3000k'
     bufsize = '6000k'
-    
     if resolution == '1080p':
         bitrate = '6000k'
         bufsize = '12000k'
@@ -78,10 +76,27 @@ def run_ffmpeg(source, destination, loop_count, resolution):
 
     print(f"Configuring Stream: {resolution} (Bitrate: {bitrate})")
 
-    # 3. Build Command
+    # 3. Format Headers for FFmpeg
+    # FFmpeg expects headers like: "Name: Value\r\nName: Value"
+    header_args = []
+    if http_headers:
+        header_str = ""
+        for key, value in http_headers.items():
+            header_str += f"{key}: {value}\r\n"
+        
+        # Remove the last new line
+        if header_str:
+            header_args = ['-headers', header_str]
+            print("Injecting authentication headers into FFmpeg...")
+
+    # 4. Build Command
     cmd = ['ffmpeg']
 
-    # Use -re ONLY for VOD/Files. Never for Live.
+    # CRITICAL: Headers must come BEFORE the input (-i)
+    if header_args:
+        cmd.extend(header_args)
+
+    # Use -re ONLY for VOD/Files
     if not is_live:
         cmd.append('-re')
 
@@ -92,8 +107,8 @@ def run_ffmpeg(source, destination, loop_count, resolution):
         '-i', real_source,
         '-c:v', 'libx264',
         '-preset', 'veryfast',
-        '-maxrate', bitrate,   # Dynamic Bitrate
-        '-bufsize', bufsize,   # Dynamic Buffer
+        '-maxrate', bitrate,
+        '-bufsize', bufsize,
         '-pix_fmt', 'yuv420p',
         '-g', '50',
         '-c:a', 'aac',
@@ -117,7 +132,7 @@ def start_stream():
     source_url = data.get('source_url')
     rtmp_url = data.get('rtmp_url')
     loop_count = data.get('loop_count', 0)
-    resolution = data.get('resolution', '720p') # Receive Resolution
+    resolution = data.get('resolution', '720p')
 
     print(f"Received Start Request: Source={source_url}, Quality={resolution}")
 
