@@ -1,220 +1,137 @@
 "use client";
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Play, Wifi, Activity, HardDrive, Calendar, Signal, Globe, MoreHorizontal, CheckCircle, Clock, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { 
+  Facebook, Youtube, Twitch, Cast, 
+  Plus, Activity, ArrowRight, Loader2 
+} from 'lucide-react';
 
 export default function Dashboard() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<any>(null);
-  const [user, setUser] = useState<any>(null);
-  
-  // Stream Form State
-  const [sourceUrl, setSourceUrl] = useState('');
-  const [selectedDestId, setSelectedDestId] = useState('');
-  const [isStarting, setIsStarting] = useState(false);
+  const [stats, setStats] = useState({ total: 0, active: 0 });
 
   useEffect(() => {
-    const u = localStorage.getItem('user');
-    if (u) setUser(JSON.parse(u));
-
-    const fetchData = async () => {
+    const checkAuth = async () => {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) return router.push('/login');
+
       try {
         const res = await fetch('/api/dashboard', {
-            headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (res.ok) {
-            const json = await res.json();
-            setData(json);
-            // Auto-select first destination if available
-            if (json.destinations?.length > 0) {
-                setSelectedDestId(json.destinations[0].id);
-            }
+        
+        if (res.status === 401 || res.status === 500) {
+          // FIX: If token is invalid (signature mismatch), clear it and force login
+          localStorage.removeItem('token');
+          router.push('/login');
+          return;
         }
-      } catch (err) { console.error(err); } 
-      finally { setLoading(false); }
+
+        const data = await res.json();
+        setStats({
+          total: data?.stats?.totalStreams || 0,
+          active: data?.destinations?.length || 0
+        });
+      } catch (err) {
+        console.error("Auth check failed", err);
+      } finally {
+        setLoading(false);
+      }
     };
-    fetchData();
+    checkAuth();
   }, []);
 
-  const handleGoLive = async () => {
-    if (!sourceUrl) return alert("Please enter a video link.");
-    if (!selectedDestId) return alert("Please select a destination.");
-
-    setIsStarting(true);
-    const token = localStorage.getItem('token');
-
-    try {
-        const res = await fetch('/api/streams/start', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                title: "Live from Dashboard",
-                sourceUrl,
-                destinationId: selectedDestId,
-                pageId: 'me' // Default to Profile for now (We can add Page selector later)
-            })
-        });
-
-        const result = await res.json();
-        
-        if (res.ok) {
-            alert(`Stream Started! Target: ${result.targetUrl.substring(0, 30)}...`);
-            // Refresh dashboard data to show new stream
-            window.location.reload(); 
-        } else {
-            alert("Error: " + result.error);
-        }
-    } catch (err) {
-        alert("Failed to start stream.");
-    } finally {
-        setIsStarting(false);
-    }
-  };
-
-  if (loading) return <div className="h-screen flex items-center justify-center bg-slate-50"><Loader2 className="animate-spin text-emerald-600" /></div>;
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center bg-slate-50">
+      <Loader2 className="w-10 h-10 animate-spin text-emerald-600" />
+    </div>
+  );
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-12">
+    <div className="max-w-7xl mx-auto space-y-10 pb-12">
       
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-            Welcome back, {user?.name?.split(' ')[0]}
-          </h1>
-          <p className="text-slate-500 mt-1">Here is your studio performance overview.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard/destinations" className="px-4 py-2 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-colors flex items-center shadow-lg shadow-slate-200">
-            <Globe className="w-4 h-4 mr-2" /> Manage Destinations
-          </Link>
-        </div>
+      <div>
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">Broadcast Studio</h1>
+        <p className="text-slate-500 text-lg">Select a platform to launch a new stream.</p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard label="Total Streams" value={data?.stats?.totalStreams || '0'} icon={<Activity className="text-emerald-600" />} trend="All time" />
-        <StatCard label="Active Destinations" value={data?.stats?.activeDestinations || '0'} icon={<Signal className="text-blue-600" />} trend="Connected" />
-        <StatCard label="System Status" value="Online" icon={<HardDrive className="text-purple-600" />} trend="100% Uptime" />
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-8">
+      {/* THE POWER HOUSE GRID */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         
-        {/* Main Action Area */}
-        <div className="lg:col-span-2 space-y-8">
-          
-          {/* Go Live Widget */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm relative overflow-hidden">
-            <div className="relative z-10">
-              <h2 className="text-xl font-bold text-slate-900 mb-2">Start a Broadcast</h2>
-              <p className="text-slate-500 mb-6">
-                Enter a video source URL (YouTube, m3u8, mp4) to begin.
-              </p>
-              
-              <div className="space-y-4">
-                 {/* Destination Selector */}
-                 <div>
-                    <label className="text-xs font-bold text-slate-500 uppercase">Destination</label>
-                    <select 
-                        className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
-                        value={selectedDestId}
-                        onChange={(e) => setSelectedDestId(e.target.value)}
-                    >
-                        {data?.destinations?.map((d: any) => (
-                            <option key={d.id} value={d.id}>
-                                {d.platform.charAt(0).toUpperCase() + d.platform.slice(1)} - {d.nickname}
-                            </option>
-                        ))}
-                        {data?.destinations?.length === 0 && <option>No destinations found</option>}
-                    </select>
-                 </div>
+        {/* Facebook Launcher */}
+        <PlatformLauncher 
+          name="Facebook Live" 
+          icon={<Facebook className="w-8 h-8 text-white" />} 
+          color="bg-[#1877F2]" 
+          desc="Stream to Profile or Pages"
+          href="/dashboard/stream/facebook"
+        />
 
-                 {/* Source Input */}
-                 <div className="flex gap-3">
-                    <input 
-                    type="text" 
-                    value={sourceUrl}
-                    onChange={(e) => setSourceUrl(e.target.value)}
-                    placeholder="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" 
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none"
-                    />
-                    <button 
-                        onClick={handleGoLive}
-                        disabled={isStarting || data?.destinations?.length === 0}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-emerald-200 flex items-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isStarting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 mr-2 fill-current" />}
-                        Go Live
-                    </button>
-                 </div>
-              </div>
-            </div>
-          </div>
+        {/* YouTube Launcher */}
+        <PlatformLauncher 
+          name="YouTube Live" 
+          icon={<Youtube className="w-8 h-8 text-white" />} 
+          color="bg-[#FF0000]" 
+          desc="Stream to Channel or Event"
+          href="/dashboard/stream/youtube"
+        />
 
-          {/* Recent Activity Table */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-5 border-b border-slate-100"><h3 className="font-bold text-slate-900">Recent Broadcasts</h3></div>
-            <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 text-slate-500 font-medium">
-                <tr>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3">Title</th>
-                  <th className="px-6 py-3">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {data?.recentStreams?.map((stream: any) => (
-                    <tr key={stream.id} className="hover:bg-slate-50/50">
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${stream.status === 'LIVE' ? 'bg-red-100 text-red-800 animate-pulse' : 'bg-slate-100 text-slate-600'}`}>
-                          {stream.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 font-medium text-slate-900">{stream.title}</td>
-                      <td className="px-6 py-4 text-slate-500">{new Date(stream.createdAt).toLocaleDateString()}</td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        {/* Twitch Launcher */}
+        <PlatformLauncher 
+          name="Twitch" 
+          icon={<Twitch className="w-8 h-8 text-white" />} 
+          color="bg-[#9146FF]" 
+          desc="Stream to Channel"
+          href="/dashboard/stream/twitch"
+        />
 
-        {/* Right Column (Info) */}
-        <div className="space-y-6">
-           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-             <h3 className="font-bold text-slate-900 mb-4">Connections</h3>
-             {data?.destinations?.length === 0 ? (
-                 <p className="text-sm text-slate-400">No platforms connected.</p>
-             ) : (
-                 <div className="space-y-3">
-                     {data?.destinations?.map((d: any) => (
-                         <div key={d.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-                            <span className="font-medium text-slate-700 capitalize">{d.platform}</span>
-                            <span className="text-xs text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded">Ready</span>
-                         </div>
-                     ))}
-                 </div>
-             )}
+        {/* Custom RTMP */}
+        <PlatformLauncher 
+          name="Custom RTMP" 
+          icon={<Cast className="w-8 h-8 text-white" />} 
+          color="bg-slate-800" 
+          desc="Stream to any server"
+          href="/dashboard/stream/custom"
+        />
+
+        {/* Quick Stats Widget (Visual Filler) */}
+        <div className="md:col-span-2 lg:col-span-2 bg-white rounded-3xl border border-slate-200 p-8 flex items-center justify-between shadow-sm relative overflow-hidden group">
+           <div className="relative z-10">
+             <h3 className="text-xl font-bold text-slate-900 mb-1">Studio Performance</h3>
+             <p className="text-slate-500 mb-6">You have completed <span className="font-bold text-emerald-600">{stats.total} broadcasts</span> so far.</p>
+             <Link href="/dashboard/history" className="text-emerald-600 font-bold hover:underline flex items-center">
+               View History <ArrowRight className="w-4 h-4 ml-2" />
+             </Link>
+           </div>
+           <div className="bg-emerald-50 p-6 rounded-full">
+             <Activity className="w-10 h-10 text-emerald-600" />
            </div>
         </div>
+
       </div>
     </div>
   );
 }
 
-function StatCard({ label, value, icon, trend }: any) {
+function PlatformLauncher({ name, icon, color, desc, href }: any) {
   return (
-    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-      <div className="flex justify-between items-start mb-4">
-        <div><p className="text-slate-500 text-sm font-medium">{label}</p><h3 className="text-2xl font-extrabold text-slate-900 mt-1">{value}</h3></div>
-        <div className="p-2 bg-slate-50 rounded-lg">{icon}</div>
+    <Link href={href} className="group relative bg-white rounded-3xl p-8 border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+      <div className={`w-16 h-16 ${color} rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform`}>
+        {icon}
       </div>
-      <p className="text-xs font-medium text-emerald-600 bg-emerald-50 inline-block px-2 py-1 rounded-md">{trend}</p>
-    </div>
+      
+      <h3 className="text-2xl font-bold text-slate-900 mb-2 group-hover:text-emerald-700 transition-colors">{name}</h3>
+      <p className="text-slate-500 mb-8">{desc}</p>
+      
+      <div className="flex items-center font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
+        Start Setup <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" />
+      </div>
+
+      {/* Decorative Glow */}
+      <div className={`absolute -bottom-10 -right-10 w-40 h-40 ${color} opacity-5 rounded-full blur-3xl group-hover:opacity-10 transition-opacity`}></div>
+    </Link>
   );
 }
