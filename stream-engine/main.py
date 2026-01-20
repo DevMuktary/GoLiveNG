@@ -21,60 +21,69 @@ jwt.init_app(app)
 
 app.register_blueprint(auth_bp, url_prefix='/auth')
 
-# --- HELPER: Resolve URL & Check if Live ---
+# --- HELPER: Smart URL Resolution ---
 def get_stream_info(url):
     """
     Returns tuple: (resolved_url, is_live_bool)
     """
     print(f"Resolving URL for: {url}")
     
-    # Check for optional cookies.txt
     cookie_file = 'cookies.txt' if os.path.exists('cookies.txt') else None
-    if cookie_file:
-        print("Found cookies.txt! Using it for authentication.")
+    
+    # Base Options
+    ydl_opts = {
+        'format': 'best',
+        'quiet': True,
+        'no_warnings': True,
+        'noplaylist': True,
+        'cookiefile': cookie_file
+    }
+
+    # CRITICAL FIX: Only use Android Client if NO cookies are present.
+    # Mixing Desktop Cookies with Android Client causes "No video formats found".
+    if not cookie_file:
+        print("No cookies found. Using Android Client bypass.")
+        ydl_opts['extractor_args'] = {'youtube': {'player_client': ['android', 'ios']}}
+    else:
+        print("Cookies found! Using Standard Client.")
 
     try:
-        ydl_opts = {
-            'format': 'best',
-            'quiet': True,
-            'no_warnings': True,
-            'noplaylist': True,
-            # CRITICAL FIX: Use Android client to bypass "Sign in to confirm" on servers
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['android', 'ios']
-                }
-            },
-            'cookiefile': cookie_file
-        }
-        
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             resolved_url = info.get('url', url)
             is_live = info.get('is_live', False)
-            
             print(f"Resolved: {resolved_url[:60]}... (Live: {is_live})")
             return resolved_url, is_live
-            
     except Exception as e:
         print(f"yt-dlp failed: {str(e)}")
-        # If headers fail, we return None or original to fail gracefully
+        # Fallback: Return original URL (FFmpeg might handle it if it's a direct link)
         return url, False
 
 # --- 1. THE STREAMING FUNCTION ---
-def run_ffmpeg(source, destination, loop_count):
+def run_ffmpeg(source, destination, loop_count, resolution):
     # 1. Get URL and Live Status
     real_source, is_live = get_stream_info(source)
     
-    # 2. Build Command
+    # 2. Determine Bitrate based on Resolution
+    # Defaults to 720p settings
+    bitrate = '3000k'
+    bufsize = '6000k'
+    
+    if resolution == '1080p':
+        bitrate = '6000k'
+        bufsize = '12000k'
+    elif resolution == '4K':
+        bitrate = '12000k'
+        bufsize = '24000k'
+
+    print(f"Configuring Stream: {resolution} (Bitrate: {bitrate})")
+
+    # 3. Build Command
     cmd = ['ffmpeg']
 
     # Use -re ONLY for VOD/Files. Never for Live.
     if not is_live:
-        print("Source is VOD/File. Using -re (Real-time input simulation).")
         cmd.append('-re')
-    else:
-        print("Source is LIVE. Skipping -re.")
 
     if not is_live:
         cmd.extend(['-stream_loop', str(loop_count)])
@@ -83,8 +92,8 @@ def run_ffmpeg(source, destination, loop_count):
         '-i', real_source,
         '-c:v', 'libx264',
         '-preset', 'veryfast',
-        '-maxrate', '3000k',
-        '-bufsize', '6000k',
+        '-maxrate', bitrate,   # Dynamic Bitrate
+        '-bufsize', bufsize,   # Dynamic Buffer
         '-pix_fmt', 'yuv420p',
         '-g', '50',
         '-c:a', 'aac',
@@ -108,13 +117,14 @@ def start_stream():
     source_url = data.get('source_url')
     rtmp_url = data.get('rtmp_url')
     loop_count = data.get('loop_count', 0)
+    resolution = data.get('resolution', '720p') # Receive Resolution
 
-    print(f"Received Start Request: Source={source_url}, Target={rtmp_url}")
+    print(f"Received Start Request: Source={source_url}, Quality={resolution}")
 
     if not source_url or not rtmp_url:
         return jsonify({"error": "Missing source or RTMP URL"}), 400
 
-    thread = threading.Thread(target=run_ffmpeg, args=(source_url, rtmp_url, loop_count))
+    thread = threading.Thread(target=run_ffmpeg, args=(source_url, rtmp_url, loop_count, resolution))
     thread.start()
 
     return jsonify({"message": "Stream started", "status": "processing"}), 200
