@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
 
-// --- FORCE NO CACHE ---
+// Force dynamic to prevent caching old versions
 export const dynamic = 'force-dynamic';
-// ----------------------
 
 const FB_CLIENT_ID = process.env.FB_CLIENT_ID;
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -34,18 +33,15 @@ export async function POST(req: Request) {
     const stateToken = jwt.sign({ userId, platform: 'facebook' }, JWT_SECRET, { expiresIn: '5m' });
     cookies().set('oauth_state', stateToken, { secure: true, httpOnly: true, path: '/' });
 
-    // Generate URL
     const redirectUri = `${BASE_URL}/api/auth/callback/facebook`;
     
-    // I re-ordered these permissions to ensure the URL looks different to the browser
-    const scope = 'public_profile,publish_video,pages_read_engagement,pages_manage_posts';
+    // --- UPDATED SCOPES ---
+    // We strictly use the modern permissions required for Business Apps
+    const scope = 'public_profile,pages_manage_posts,pages_read_engagement,publish_video';
     
-    // Add a random timestamp to the URL to prevent browser caching
-    const timestamp = new Date().getTime();
-    
-    const url = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${FB_CLIENT_ID}&redirect_uri=${redirectUri}&state=${stateToken}&scope=${scope}&ts=${timestamp}`;
-
-    console.log("Generated Facebook URL with Scope:", scope); // This will show in Railway Logs
+    // --- VERSION UPDATE ---
+    // Changed from v18.0 to v22.0 to match modern standards
+    const url = `https://www.facebook.com/v22.0/dialog/oauth?client_id=${FB_CLIENT_ID}&redirect_uri=${redirectUri}&state=${stateToken}&scope=${scope}`;
 
     return NextResponse.json({ url });
 
