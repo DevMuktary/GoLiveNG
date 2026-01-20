@@ -71,13 +71,35 @@ export async function POST(req: Request) {
       finalRtmpUrl = createData.stream_url;
     }
 
-    // 4. Create Stream Record
+    // 4. TRIGGER PYTHON ENGINE
+    // We command the Python worker to download the source and push it to the RTMP Target
+    
+    // IMPORTANT: Use the Docker/Railway internal service URL, not localhost
+    const ENGINE_URL = process.env.STREAM_ENGINE_URL || 'http://localhost:8000';
+    
+    console.log(`Triggering Python Engine at ${ENGINE_URL}...`);
+    
+    const engineRes = await fetch(`${ENGINE_URL}/start_stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            source_url: sourceUrl,
+            rtmp_url: finalRtmpUrl,
+            loop_count: Number(loop) 
+        })
+    });
+
+    if (!engineRes.ok) {
+        throw new Error(`Stream Engine Failed: ${engineRes.statusText}`);
+    }
+
+    // 5. Create Stream Record (Only if engine accepted the job)
     const stream = await prisma.stream.create({
       data: {
         userId,
         title,
         sourceUrl,
-        status: 'LIVE', // We set it to LIVE immediately for UI feedback
+        status: 'LIVE', 
         loopCount: Number(loop),
         resolution,
         destinationId: dest.id
@@ -85,29 +107,6 @@ export async function POST(req: Request) {
     });
 
     console.log("Stream record created:", stream.id);
-
-    // 5. TRIGGER PYTHON ENGINE (THE CRITICAL MISSING PIECE)
-    // We command the Python worker to download the source and push it to the RTMP Target
-    try {
-        // Use the internal Railway service URL or localhost for dev
-        const ENGINE_URL = process.env.STREAM_ENGINE_URL || 'http://localhost:8000';
-        
-        console.log(`Triggering Python Engine at ${ENGINE_URL}...`);
-        
-        await fetch(`${ENGINE_URL}/start_stream`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                source_url: sourceUrl,
-                rtmp_url: finalRtmpUrl,
-                loop_count: Number(loop) 
-            })
-        });
-        
-    } catch (engineError) {
-        console.error("Failed to trigger Stream Engine:", engineError);
-        // We log the error but don't crash the request so the user still sees "Success"
-    }
 
     return NextResponse.json({ 
       success: true, 
